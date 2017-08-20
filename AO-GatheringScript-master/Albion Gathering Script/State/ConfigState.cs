@@ -34,7 +34,16 @@ namespace Ennui.Script.Official
         private IButton addRoamPointButton;
 		private IButton removeRoamPointButton;
 
-		private IButton runButton;
+        // ediablo
+        private IButton setPP1Button;
+        private IButton setPP2Button;
+        private IButton setPP3Button;
+        private ICheckBox usePathPoints;
+        public static Vector3<float> firstRoamPoint; 
+        //
+
+
+        private IButton runButton;
 
 		// MadMonk Extras
 		private ICheckBox skipRepairingCheckBox;
@@ -246,15 +255,16 @@ namespace Ennui.Script.Official
 			config.skipRepairing = skipRepairingCheckBox.IsSelected();
 			config.roamPointFirst = roamPointFirstCheckBox.IsSelected();
 			config.enableRepairWayPoints = enableRepairWayPointsCheckBox.IsSelected();
-
-            // wtf123 Extras
             config.blacklistEnabled = blacklistCheckBox.IsSelected();
             config.ingnoreMobCampNodes = ignorMobCampNodes.IsSelected();
-            
+
+            // ediablo Extras
+            config.usePathPoints = usePathPoints.IsSelected();
+            firstRoamPoint = new Vector3f(config.myX, config.myY, config.myZ);
+            // end 
+
             SaveConfig();
-
             config.debugInfo = debugInfoCheckBox.IsSelected();
-
 
             primaryPanel.Destroy();
             parent.EnterState("resolve");
@@ -268,10 +278,10 @@ namespace Ennui.Script.Official
             Game.Sync(() =>
             {
                 var screenSize = Game.ScreenSize;
-				int panelSize = 500;
+				int panelSize = 510;
                 primaryPanel = Factories.CreateGuiPanel();
                 GuiScene.Add(primaryPanel);
-                primaryPanel.SetSize(300, panelSize);
+                primaryPanel.SetSize(320, panelSize);
                 primaryPanel.SetPosition(155, ((screenSize.Y / 2) - 50), 0);
                 //primaryPanel.SetPosition((screenSize.X/2) - 50, ((screenSize.Y / 2) - 50), 0);
                 primaryPanel.SetAnchor(new Vector2f(0.0f, 0.0f), new Vector2f(0.0f, 0.0f));
@@ -425,6 +435,9 @@ namespace Ennui.Script.Official
                         Logging.Log("Add roam point " + loc.X + " " + loc.Y + " " + loc.Z);
                         config.ResourceClusterName = Game.ClusterName;
                         config.RoamPoints.Add(new SafeVector3(new Vector3f(loc.X, loc.Y, loc.Z)));
+                        config.myX = config.RoamPoints[0].X;
+                        config.myY = config.RoamPoints[0].Y;
+                        config.myZ = config.RoamPoints[0].Z;
                     }
                 });
 
@@ -451,7 +464,74 @@ namespace Ennui.Script.Official
 					}
 				});
 
-				/*
+                // ************* ediablo
+
+                setPP1Button = Factories.CreateGuiButton();
+                primaryPanel.Add(setPP1Button);
+                setPP1Button.SetPosition(-70, (theEqualizer - 450), 0);
+                setPP1Button.SetSize(50, 25);
+                setPP1Button.SetText("PP1");
+                setPP1Button.AddActionListener((e) =>
+                {
+                    var local = Players.LocalPlayer;
+                    if (local != null)
+                    {
+                        var loc = local.Location;
+                        var area = loc.Expand(4, 2, 4);
+                        config.PP1Name = Game.ClusterName;
+                        config.PP1Dest = new SafeVector3(new Vector3f(loc.X, loc.Y, loc.Z));
+                        config.PP1Area = new SafeMapArea(Game.ClusterName, new Area(area.Start, area.End));
+                    }
+                });
+
+                setPP2Button = Factories.CreateGuiButton();
+                primaryPanel.Add(setPP2Button);
+                setPP2Button.SetPosition(0, (theEqualizer - 450), 0);
+                setPP2Button.SetSize(50, 25);
+                setPP2Button.SetText("PP2");
+                setPP2Button.AddActionListener((e) =>
+                {
+                    var local = Players.LocalPlayer;
+                    if (local != null)
+                    {
+                        var loc = local.Location;
+                        var area = loc.Expand(4, 2, 4);
+                        config.PP2Name = Game.ClusterName;
+                        config.PP2Dest = new SafeVector3(new Vector3f(loc.X, loc.Y, loc.Z));
+                        config.PP2Area = new SafeMapArea(Game.ClusterName, new Area(area.Start, area.End));
+                    }
+                });
+
+                setPP3Button = Factories.CreateGuiButton();
+                primaryPanel.Add(setPP3Button);
+                setPP3Button.SetPosition(70, (theEqualizer - 450), 0);
+                setPP3Button.SetSize(50, 25);
+                setPP3Button.SetText("PP3");
+                setPP3Button.AddActionListener((e) =>
+                {
+                    var local = Players.LocalPlayer;
+                    if (local != null)
+                    {
+                        var loc = local.Location;
+                        var area = loc.Expand(4, 2, 4);
+                        config.PP3Name = Game.ClusterName;
+                        config.PP3Dest = new SafeVector3(new Vector3f(loc.X, loc.Y, loc.Z));
+                        config.PP3Area = new SafeMapArea(Game.ClusterName, new Area(area.Start, area.End));
+                    }
+                });
+
+                usePathPoints = Factories.CreateGuiCheckBox();
+                primaryPanel.Add(usePathPoints);
+                usePathPoints.SetPosition(70, (theEqualizer - 375), 0);
+                usePathPoints.SetSize(125, 25);
+                usePathPoints.SetText("Use PathPoints?");
+                usePathPoints.SetSelected(true);
+
+                //
+
+
+
+                /*
 				addFirstInterConnectButton = Factories.CreateGuiButton();
 				primaryPanel.Add(addFirstInterConnectButton);
 				addFirstInterConnectButton.SetPosition(-70, (theEqualizer - 400), 0);
@@ -491,9 +571,9 @@ namespace Ennui.Script.Official
 				});
 				*/
 
-				runButton = Factories.CreateGuiButton();
+                runButton = Factories.CreateGuiButton();
                 primaryPanel.Add(runButton);
-                runButton.SetPosition(0, (theEqualizer - 450), 0);
+                runButton.SetPosition(0, (theEqualizer - 475), 0);
                 runButton.SetSize(125, 25);
                 runButton.SetText("Run");
                 runButton.AddActionListener((e) =>
@@ -516,25 +596,8 @@ namespace Ennui.Script.Official
 						context.State = "No exit waypoint set!";
 						return;
 					}
-
-					if (config.RepairWayPointOneDest == null)
-					{
-						context.State = "WP-1 Not Set!";
-						return;
-					}
-					if (config.RepairWayPointTwoDest == null)
-					{
-						context.State = "WP-2 Not Set!";
-						return;
-					}
-
-					if (config.RepairWayPointThreeDest == null)
-					{
-						context.State = "WP-3 Not Set!";
-						return;
-					}
-					// End of MadMonk Extras
-
+                    // End of MadMonk Extras				
+                     
 					SelectedStart();
                 });
 
@@ -542,18 +605,18 @@ namespace Ennui.Script.Official
 				skipRepairingCheckBox = Factories.CreateGuiCheckBox();
 				primaryPanel.Add(skipRepairingCheckBox);
 				skipRepairingCheckBox.SetPosition(-80, (theEqualizer - 325), 0);
-				skipRepairingCheckBox.SetSize(100, 25);
+				skipRepairingCheckBox.SetSize(80, 25);
 				skipRepairingCheckBox.SetText("Skip Repairing");
 				skipRepairingCheckBox.SetSelected(false);
 
 				roamPointFirstCheckBox = Factories.CreateGuiCheckBox();
 				primaryPanel.Add(roamPointFirstCheckBox);
 				roamPointFirstCheckBox.SetPosition(-80, (theEqualizer - 350), 0);
-				roamPointFirstCheckBox.SetSize(100, 25);
+				roamPointFirstCheckBox.SetSize(80, 25);
 				roamPointFirstCheckBox.SetText("Roam Point First");
-				roamPointFirstCheckBox.SetSelected(false);
+				roamPointFirstCheckBox.SetSelected(true);
 
-				setExitAreaButton = Factories.CreateGuiButton();
+				setExitAreaButton = Factories.CreateGuiButton(); 
 				primaryPanel.Add(setExitAreaButton);
 				setExitAreaButton.SetPosition(70, (theEqualizer - 250), 0);
 				setExitAreaButton.SetSize(125, 25);
@@ -566,7 +629,7 @@ namespace Ennui.Script.Official
 						var loc = local.Location;
 						var area = loc.Expand(4, 2, 4);
 						Logging.Log("Set exit loc to " + loc.X + " " + loc.Y + " " + loc.Z);
-						config.RepairClusterName = Game.ClusterName;
+						config.WOName = Game.ClusterName;
 						config.ExitDest = new SafeVector3(new Vector3f(loc.X, loc.Y, loc.Z));
 						config.ExitArea = new SafeMapArea(Game.Cluster.Name, new Area(area.Start, area.End));
 					}
@@ -631,9 +694,9 @@ namespace Ennui.Script.Official
 
 				enableRepairWayPointsCheckBox = Factories.CreateGuiCheckBox();
 				primaryPanel.Add(enableRepairWayPointsCheckBox);
-				enableRepairWayPointsCheckBox.SetPosition(-80, (theEqualizer - 375), 0);
+				enableRepairWayPointsCheckBox.SetPosition(-70, (theEqualizer - 375), 0);
 				enableRepairWayPointsCheckBox.SetSize(100, 25);
-				enableRepairWayPointsCheckBox.SetText("Enable 3-Step Repairing");
+				enableRepairWayPointsCheckBox.SetText("3-Step Repairing");
 				enableRepairWayPointsCheckBox.SetSelected(false);
 
                 /*
@@ -701,8 +764,8 @@ namespace Ennui.Script.Official
 
                 debugInfoCheckBox = Factories.CreateGuiCheckBox();
                 primaryPanel.Add(debugInfoCheckBox);
-                debugInfoCheckBox.SetPosition(-70, (theEqualizer - 475), 0);
-                debugInfoCheckBox.SetSize(125, 25);
+                debugInfoCheckBox.SetPosition(-70, (theEqualizer - 500), 0);
+                debugInfoCheckBox.SetSize(75, 15);
                 debugInfoCheckBox.SetText("Debug Info");
                 debugInfoCheckBox.SetSelected(false);
 
@@ -729,7 +792,7 @@ namespace Ennui.Script.Official
         public override int OnLoop(IScriptEngine se)
         {
             var lpo = Players.LocalPlayer;
-            if (lpo != null)
+            if (lpo != null && config.MaxHoldWeight < lpo.MaxCarryWeight)
                 config.MaxHoldWeight = lpo.MaxCarryWeight;
             return 100;
         }

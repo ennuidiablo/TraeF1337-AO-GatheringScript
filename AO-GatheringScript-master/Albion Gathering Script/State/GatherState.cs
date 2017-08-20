@@ -213,35 +213,12 @@ namespace Ennui.Script.Official
             return useMount;
         }
 
-        private Boolean buffFoodActive()
-        {
-            var buffFoodActive = Players.LocalPlayer.Effects;
-            foreach (var cur in Players.LocalPlayer.Effects)
-            {
-                if (cur.Config.Category == SpellCategory.FoodBuff)
-                    return true;
-            }
-
-            return false;
-        }
-        private void buffFoodApply()
-        {
-            var buffFoodSpell = Players.LocalPlayer.SpellChain.FilterByReady().FilterByTarget(SpellTarget.Self).FilterByCategory(SpellCategory.FoodBuff).First;
-            Players.LocalPlayer.CastOnSelf(buffFoodSpell.Slot);
-        }
         public override int OnLoop(IScriptEngine se)
         {
             var localPlayer = Players.LocalPlayer;
             var localLocation = localPlayer.Location;
 
             // <------------ wtf123 start
-            if (localPlayer != null && localPlayer.IsMounted && config.MaxHoldWeight != localPlayer.MaxCarryWeight)
-                config.MaxHoldWeight = localPlayer.MaxCarryWeight;
-
-            if (!buffFoodActive())
-                buffFoodApply();
-
-
             if (blacklist.Count > 500)
             {
                 blacklist.Clear();
@@ -267,8 +244,16 @@ namespace Ennui.Script.Official
             if (config.RepairDest != null && Api.HasBrokenItems() && (config.skipRepairing == false))
             {
                 blacklist.Clear();
-                parent.EnterState("repair");
-                return 0;
+                if (config.usePathPoints)
+                {
+                    parent.EnterState("ppthreeb");
+                    return 0;
+                }
+                else
+                {
+                    parent.EnterState("repair");
+                    return 0;
+                }
             }
 
             if (localPlayer == null)
@@ -288,57 +273,53 @@ namespace Ennui.Script.Official
             //if (!config.GatherArea.RealArea(Api).Contains(localLocation))
             if (!config.ResourceArea.RealArea(Api).Contains(localLocation))
             {
-                context.State = "Walking to gather area...";
-                Logging.Log("Local player not in gather area, walk there!", LogLevel.Atom);
-
-				// MadMonk Extras
-				
-				context.State = "Walking to Exit waypoint first...";
-
-				var configb = new PointPathFindConfig();
-				configb.ClusterName = this.config.RepairClusterName;
-				configb.Point = this.config.ExitDest.RealVector3();
-				configb.UseWeb = false;
-				configb.UseMount = true;
-				Movement.PathFindTo(configb);
-
-				if (config.roamPointFirst)
-				{
-					context.State = "Walking to roam waypoint first...";
-
-					var config = new PointPathFindConfig();
-					config.ClusterName = this.config.ResourceClusterName;
-					config.Point = RandomRoamPoint();
-					config.UseWeb = false;
-					config.UseMount = true;
-					Movement.PathFindTo(config);
-					return 0;
-				}
-
-				var moveConfig = new PointPathFindConfig();
-                moveConfig.UseWeb = false;
-                moveConfig.ClusterName = config.ResourceClusterName;
-                if (Movement.PathFindTo(moveConfig) != PathFindResult.Success)
+                if (config.roamPointFirst)
                 {
-                    Logging.Log("Local player failed to find path to resource area!", LogLevel.Error);
-                    return 10_000;
+                    context.State = "Walking to 1st Roam Point..";
+                    Logging.Log("Local player not in gather area, walk there!", LogLevel.Atom);
+                    var moveConfig = new PointPathFindConfig();
+                    moveConfig.UseWeb = false;
+                    moveConfig.ClusterName = config.ResourceClusterName;
+                    moveConfig.Point = ConfigState.firstRoamPoint;
+                    if (Movement.PathFindTo(moveConfig) != PathFindResult.Success)
+                    {
+                        Logging.Log("Local player failed to find path to resource area!", LogLevel.Error);
+                        return 10_000;
+                    }
                 }
-
-                return 0;
+                else
+                {
+                    context.State = "Walking to gather area...";
+                    Logging.Log("Local player not in gather area, walk there!", LogLevel.Atom);
+                    var moveConfig = new PointPathFindConfig();
+                    moveConfig.UseWeb = false;
+                    moveConfig.ClusterName = config.ResourceClusterName;
+                    if (Movement.PathFindTo(moveConfig) != PathFindResult.Success)
+                    {
+                        Logging.Log("Local player failed to find path to resource area!", LogLevel.Error);
+                        return 10_000;
+                    }
+                }
             }
             
 			config.currentWeight = localPlayer.TotalHoldWeight;
             var currentWeight = config.currentWeight;
             var maxHoldWeight = config.MaxHoldWeight;
-            if (((localPlayer.TotalHoldWeight + 0.0f)/ (config.MaxHoldWeight + 0.0f)) > config.bankOnHoldPercentage)
+            if (((localPlayer.TotalHoldWeight + 0.0f)/ (config.MaxHoldWeight + 0.0f)) > 1.0f)
             {
                 Logging.Log("Local player has too much weight, banking!", LogLevel.Atom);
                 blacklist.Clear();
-				parent.EnterState("bank");
-                return 0;
-            }
-
-             
+                if (config.usePathPoints)
+                {
+                    parent.EnterState("ppthreeb");
+                    return 0;
+                }
+                else
+                {
+                    parent.EnterState("bank");
+                    return 0;
+                }
+            }             
 
             if (NeedsNew())
             {
@@ -397,7 +378,7 @@ namespace Ennui.Script.Official
                     {
                         var mobDistanceFromNode = harvestableTarget.Location.SimpleDistance(ent.Location);
                         var drops = ent.HarvestableDropChain.FilterByTypeSet(SafeTypeSet.BatchConvert(config.TypeSetsToUse)).AsList;
-                        if (mobDistanceFromNode < 40 && drops.Count <= 0)
+                        if (mobDistanceFromNode < 35 && drops.Count <= 0)
                         {
                             blacklist.Add(harvestableTarget.Id);
                             Reset();

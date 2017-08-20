@@ -14,11 +14,29 @@ namespace Ennui.Script.Official
         public bool debugInfo = true;
         public bool blacklistEnabled = true;
         public bool ingnoreMobCampNodes = true;
-        public float bankOnHoldPercentage = 1;
 
         //public string CityClusterName = "";
         public SafeMapArea ResourceArea;
         public string ResourceClusterName = "";
+
+
+        //************* ediablo
+        public string PP1Name = "";
+        public SafeMapArea PP1Area;
+        public SafeVector3 PP1Dest;
+        public string PP2Name = "";
+        public SafeMapArea PP2Area;
+        public SafeVector3 PP2Dest;
+        public string PP3Name = "";
+        public SafeMapArea PP3Area;
+        public SafeVector3 PP3Dest;
+        public bool usePathPoints = true;
+        public float myX;
+        public float myY;
+        public float myZ;
+        public string WOName = "";
+        public bool roamPointFirst = true;
+        //
 
         //public SafeMapArea GatherArea;
         public SafeMapArea VaultArea;
@@ -56,9 +74,6 @@ namespace Ennui.Script.Official
 		// MadMonk Extras
 		public bool skipRepairing = false;
 		public float currentWeight = 0.0f;
-
-		public bool roamPointFirst = false;
-
         public bool enableRepairWayPoints = false;
 
         //public bool enableTwoZoneCrossing = false;
